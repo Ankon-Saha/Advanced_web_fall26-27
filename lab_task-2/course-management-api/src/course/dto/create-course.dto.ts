@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCourseDto {
@@ -16,8 +16,8 @@ export class CreateCourseDto {
 
     @Type(() => Number)
     @IsNumber()
-    @MinLength(1)
-    @MaxLength(6)
+    @Min(1)
+    @Max(6)
     credits: number;
 
     @IsOptional()

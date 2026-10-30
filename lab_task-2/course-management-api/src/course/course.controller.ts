@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Put, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseInterceptors, UploadedFile, BadRequestException, } from '@nestjs/common';
 import { CourseService } from './course.service.js';
 import { CreateCourseDto } from './dto/create-course.dto.js';
 import { UpdateCourseDto } from './dto/update-course.dto.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'node:path';
 
 @Controller('course')
 export class CourseController {
@@ -35,5 +38,62 @@ export class CourseController {
     @Delete(':id')
     deleteCourse(@Param('id') id: string) {
         return this.courseService.deleteCourse(id);
+    }
+
+    @Post(':id/upload')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            storage: diskStorage({
+                destination: './src/uploads',
+
+                filename: (req, file, callback) => {
+                    const uniqueName =
+                        `${Date.now()}-${Math.round(Math.random() * 1e9)}` +
+                        extname(file.originalname).toLowerCase();
+
+                    callback(null, uniqueName);
+                },
+            }),
+
+            fileFilter: (req, file, callback) => {
+                const allowedTypes = [
+                    'image/jpeg',
+                    'image/png',
+                    'application/pdf',
+                ];
+
+                const fileExtension = extname(file.originalname).toLowerCase();
+
+                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
+
+                if (
+                    allowedExtensions.includes(fileExtension) &&
+                    allowedTypes.includes(file.mimetype)
+                ) {
+                    callback(null, true);
+                } else {
+                    callback(
+                        new BadRequestException(
+                            'Only JPG, JPEG, PNG and PDF files are allowed!',
+                        ),
+                        false,
+                    );
+                }
+            },
+
+            limits: {
+                fileSize: 2 * 1024 * 1024,
+            },
+        }),
+    )
+    uploadCourseMaterial(
+        @Param('id') id: string,
+        @UploadedFile() file: Express.Multer.File,
+    ) {
+        if (!file) {
+            throw new BadRequestException('File is required!');
+        }
+
+        return this.courseService.uploadCourseMaterial(id, file);
     }
 }
